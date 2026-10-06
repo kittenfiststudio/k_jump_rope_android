@@ -1,0 +1,4 @@
+<paths>
+    <files-path name="pose_logs" path="pose_logs/" />
+    <cache-path name="results" path="exports/" />
+</paths>

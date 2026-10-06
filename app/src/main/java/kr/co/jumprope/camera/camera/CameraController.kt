@@ -49,7 +49,6 @@ class CameraController(
         if (closed || view.width == 0 || view.height == 0) return
         stop()
         val token = generation.incrementAndGet()
-        val origin = SystemClock.elapsedRealtime()
         worker.execute {
             if (generation.get() != token) return@execute
             try {
@@ -77,7 +76,7 @@ class CameraController(
                             imageAnalysis.setAnalyzer(worker) { image ->
                                 try {
                                     if (generation.get() == token) {
-                                        val timestamp = SystemClock.elapsedRealtime() - origin
+                                        val timestamp = SystemClock.elapsedRealtime()
                                         publish(token) { onInputFrame(timestamp) }
                                         val crop = image.cropRect
                                         val transform = ImageTransform(image.width, image.height,

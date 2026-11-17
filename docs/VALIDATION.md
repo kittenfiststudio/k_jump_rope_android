@@ -121,3 +121,39 @@ SM-F956N(Android 16), `connectedDebugAndroidTest`로 **4개 통과**, 실패/오
 - 실제 사용자 포즈로 완료 화면의 가시성·2초 표시·재보정 표시·추적 중단 시 숨김은 아직 미검증입니다.
 
 실기기 확인 순서: 시작 후 정지 자세 → 파란 완료 화면 확인 → 점프 시 테두리 확인 → 일시정지 시 테두리 사라짐 → 재개·정지 후 완료 화면 재표시.
+
+## Android ↔ Godot 메시지 기반 — 2026-11-17
+
+- 사용자 지정 기존 프로젝트 `godot/k_jump_godot`에 표준 WebSocket 서버와 수신 모니터를 추가했습니다.
+- Android debug 연결 직후 자동 hello, 기존 확정 JumpEvent 전송 및 PC ACK 표시를 구현했습니다.
+  별도 테스트 버튼, Python 제품용 시뮬레이터, 게임 동작은 이번 범위에 없습니다.
+- JDK 17(Android Studio 포함)에서
+  `./gradlew testDebugUnitTest lintDebug assembleDebug processReleaseMainManifest --console=plain` 통과.
+- 단위 테스트 37개 통과(기존 34 + 전송 테스트 3), 실패/오류 0.
+  신규 테스트: 점프 없이 hello 전송, 확정 이벤트 식별자·시각 전달,
+  연결 전 발생한 이벤트 미재전송, 잘못된 주소 오류 안내.
+- debug merged Manifest의 INTERNET/평문 통신 허용을 확인했습니다.
+  release merged Manifest에는 INTERNET/평문 허용이 없습니다.
+- 공식 Godot 4.5.1 임시 실행 파일로 프로젝트 import 및 headless 실행 통과.
+  사용자가 생성한 project.godot의 4.7/Mobile 설정은 유지했습니다.
+- 실제 Godot 서버에 임시 Python 표준 라이브러리 WebSocket 검증 클라이언트로
+  hello/jump ACK, 지원하지 않는 버전·배열 JSON 거부, 연결 해제 후 재접속을 확인했습니다.
+  이는 서버 통신 검증용이며 후속 가상 측정기 구현을 의미하지 않습니다.
+- **미실시:** 실제 Android → PC 통합 연결, Wi-Fi/방화벽 환경, Godot GUI 육안 확인,
+  실제 점프 이벤트 전달. 확인 시점 ADB 연결 기기가 없었습니다.
+- APK: `app/build/outputs/apk/debug/app-debug.apk`.
+- 기기 설치: `adb install -r app/build/outputs/apk/debug/app-debug.apk`.
+- 사용법: `godot/k_jump_godot/README.md`.
+
+### 실제 Android → PC 연결 확인 — 2026-11-17
+
+- USB 디버깅 승인 후 SM-F956N에 `adb install -r`로 최신 debug APK 설치 성공.
+  앱 삭제·데이터 초기화 없이 업데이트했습니다.
+- `am start -W`로 MainActivity 실행 `Status: ok` 확인.
+- 앱의 개발 지표에서 PC LAN 주소의 `ws://…:8080`으로 연결했습니다.
+- 실제 휴대폰 앱이 자동 hello를 보내고, 실행 중인 PC Godot 서버가 응답했습니다.
+  UI Automator로 앱 화면의 다음 응답을 확인했습니다:
+  `PC 응답: {"message":"Godot 수신 완료","protocol_version":1,"received_type":"hello","type":"ack"}`.
+- 따라서 점프 없이 실제 기기 → PC Godot 메시지 왕복 통신이 확인되었습니다.
+  USB는 설치·UI 조작용으로 사용했고, 앱의 WebSocket 대상은 PC LAN 주소였습니다.
+- 실제 점프 완료 메시지 전달과 Godot 화면 육안 확인은 아직 별도 검증이 필요합니다.

@@ -1,0 +1,66 @@
+# Android ↔ Godot 메시지 확인
+
+첫 목표는 **점프 없이 Android 앱에서 보낸 인사가 PC 화면에 나타나는 것**입니다.
+Android 테스트 버튼과 Python 시뮬레이터, 게임 동작은 이번 범위에 추가하지 않습니다.
+
+## 실행
+
+1. Godot 4에서 이 폴더의 `project.godot`를 열고 F5로 실행합니다.
+2. 화면에 `서버 실행 중 · 포트 8080`이 표시되는지 확인합니다.
+3. Android와 PC를 같은 Wi-Fi에 연결합니다.
+4. Android debug APK를 설치하고 앱의 **개발 지표**를 켭니다.
+5. 아래로 스크롤해 **PC Godot 연결**에 `ws://PC의LAN주소:8080`을 입력하고 **연결**합니다.
+6. PC 화면에 `Android 줄넘기 앱이 연결되었습니다.`가 표시되고,
+   Android에 `PC 응답: ... Godot 수신 완료`가 표시되면 왕복 통신 성공입니다.
+   카메라 권한이나 운동 시작·점프는 이 확인에 필요하지 않습니다.
+7. 선택적으로 운동을 시작해 보정을 마치고 뛰면 PC 화면에 `점프 N회 완료`가 표시됩니다.
+
+PC 화면의 주소 후보 중 실제 Wi-Fi/LAN 주소를 선택합니다. VPN·가상 어댑터 주소도 표시될 수 있습니다.
+실제 휴대폰에서 `127.0.0.1`은 휴대폰 자신입니다. Android 기본 에뮬레이터는
+호스트 PC에 `ws://10.0.2.2:8080`으로 연결합니다.
+방화벽에서 Godot의 TCP 8080 수신을 허용하고, 공유기의 게스트 Wi-Fi/AP 격리를 확인합니다.
+USB 연결로 네트워크를 우회하려면 `adb reverse tcp:8080 tcp:8080` 후 앱에서
+`ws://127.0.0.1:8080`을 사용합니다. 이는 Wi-Fi 검증과 별도로 기록합니다.
+
+포트는 `message_server.gd`의 `port`에서 변경할 수 있습니다. 변경 시 Android 주소도 맞춥니다.
+현재 UI의 주소 후보 표시는 기본 포트 8080 기준입니다.
+
+## 구조와 범위
+
+- `message_server.gd`: 표준 WebSocket 서버, JSON 검사와 ACK. `TCPServer` + `WebSocketPeer` 사용.
+- `main.gd` / `main.tscn`: 서버 신호를 받아 최근 메시지와 기기 수 표시.
+- 화면 로그는 최대 100줄, 클라이언트 최대 16개, 메시지 최대 8 KiB입니다.
+- 연결 설정은 Android에 저장됩니다. 재실행 시 자동 접속하지 않고 사용자가 연결합니다.
+- 네트워크 오류는 측정·로컬 저장을 중단시키지 않습니다.
+- 재연결은 수동입니다. 끊긴 동안의 점프를 저장하거나 재전송하지 않습니다.
+- 여기서는 수신 로그만 표시합니다. 이벤트 중복 집계 방지·누적 횟수 복구·게임 공격은 후속 단계입니다.
+- LAN 연결은 debug 빌드 전용입니다. debug Manifest에서만 INTERNET과 평문 통신을 허용합니다.
+  release는 기존 네트워크 권한 제거 정책을 유지합니다.
+- 영상·포즈 좌표·학생 개인정보는 전송하지 않습니다. 수신 로그는 디스크에 저장하지 않습니다.
+
+## 메시지 v1
+
+WebSocket 텍스트 프레임에 JSON 객체를 전달합니다.
+
+```json
+{"protocol_version":1,"type":"hello","message":"Android 줄넘기 앱이 연결되었습니다."}
+```
+
+연결 성공 직후 자동 전송됩니다. 연결 재시도에도 새 인사를 전송합니다.
+
+```json
+{"protocol_version":1,"type":"jump","event_id":"UUID:1","workout_session_id":"UUID","sequence":1,"timestamp_ms":1234,"message":"점프 1회 완료"}
+```
+
+`workout_session_id`는 Android 운동 UUID이며 공동 게임 세션이 아닙니다.
+`event_id`와 `sequence`는 기존 판정 결과를 그대로 사용합니다. 일시정지에도 sequence는 유지됩니다.
+`timestamp_ms`는 운동 시작 이후 단조 시각이며 PC 시계와 빼서 네트워크 지연을 구하면 안 됩니다.
+
+```json
+{"protocol_version":1,"type":"ack","received_type":"hello","message":"Godot 수신 완료"}
+```
+
+Godot이 유효한 메시지를 화면에 전달한 뒤 ACK를 보냅니다. ACK는 전송 내용의 수신 확인이며
+운동 정확도나 게임 동작 성공을 뜻하지 않습니다.
+
+공식 API 참고: https://docs.godotengine.org/en/stable/tutorials/networking/websocket.html

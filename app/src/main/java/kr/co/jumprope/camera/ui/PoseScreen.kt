@@ -1,5 +1,6 @@
 package kr.co.jumprope.camera.ui
 
+import kr.co.jumprope.camera.BuildConfig
 import android.Manifest
 import android.content.ClipData
 import android.content.Intent
@@ -52,6 +53,8 @@ fun PoseScreen(model: PoseViewModel = viewModel()) {
     val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
     val compact = windowHeight < 500.dp
     val owner = LocalLifecycleOwner.current
+    val godotStatus by model.godotStatus.collectAsStateWithLifecycle()
+    var godotAddress by remember { mutableStateOf(model.savedGodotAddress) }
     val ui by model.state.collectAsStateWithLifecycle()
     val workoutUi by model.workoutState.collectAsStateWithLifecycle()
     val history by model.history.collectAsStateWithLifecycle()
@@ -212,6 +215,19 @@ fun PoseScreen(model: PoseViewModel = viewModel()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(overlay, onCheckedChange = { overlay = it }); Text("관절 표시")
                     Spacer(Modifier.width(8.dp)); Checkbox(debug, onCheckedChange = { debug = it }); Text("개발 지표")
+                }
+                if (debug && BuildConfig.DEBUG) {
+                    Text("PC Godot 연결")
+                    OutlinedTextField(value = godotAddress, onValueChange = { godotAddress = it },
+                        label = { Text("서버 주소 · ws://PC주소:8080") }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { model.connectGodot(godotAddress) }) { Text("연결") }
+                        TextButton(onClick = model::disconnectGodot) { Text("연결 해제") }
+                    }
+                    Text(godotStatus, style = MaterialTheme.typography.bodySmall)
+                    Text("연결되면 인사를 자동 전송합니다. 점프 없이 PC에서 확인할 수 있습니다.",
+                        style = MaterialTheme.typography.bodySmall)
                 }
                 if (debug) {
                     Row(verticalAlignment = Alignment.CenterVertically) {

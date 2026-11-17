@@ -1,5 +1,7 @@
 package kr.co.jumprope.camera.ui
 
+import kr.co.jumprope.camera.BuildConfig
+import kr.co.jumprope.camera.network.GodotConnection
 import android.app.Application
 import android.os.Build
 import android.os.SystemClock
@@ -36,6 +38,18 @@ data class WorkoutUiState(
 )
 
 class PoseViewModel(application: Application) : AndroidViewModel(application) {
+    private val godot = GodotConnection()
+    val godotStatus = godot.status
+    private val connectionPreferences = application.getSharedPreferences("godot_debug", 0)
+    val savedGodotAddress: String get() = connectionPreferences.getString("address", "ws://10.0.2.2:8080")!!
+    fun connectGodot(address: String) {
+        if (!BuildConfig.DEBUG) return
+        val trimmed = address.trim()
+        connectionPreferences.edit().putString("address", trimmed).apply()
+        godot.connect(trimmed)
+    }
+    fun disconnectGodot() = godot.disconnect()
+
     private val mutableState = MutableStateFlow(PoseUiState())
     val state = mutableState.asStateFlow()
     private val mutableWorkout = MutableStateFlow(WorkoutUiState())
@@ -203,7 +217,10 @@ class PoseViewModel(application: Application) : AndroidViewModel(application) {
                 // The invalid frame already reproduces this reset; this record is observational only.
                 record("transition", mapOf("timestampMs" to frame.timestampMs, "interruption" to reason))
             }
-            detected.event?.let { record("event", it) }
+            detected.event?.let {
+                record("event", it)
+                if (BuildConfig.DEBUG) godot.sendJump(it)
+            }
         }
         publishWorkout()
     }
@@ -279,6 +296,7 @@ class PoseViewModel(application: Application) : AndroidViewModel(application) {
         timeZone = TimeZone.getTimeZone("UTC")
     }.format(Date())
     override fun onCleared() {
+        godot.close()
         controller.close()
         // Writer owns its IO scope, so flushing is not cancelled with the ViewModel.
         CoroutineScope(Dispatchers.IO).launch { logs.finish() }

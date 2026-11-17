@@ -61,7 +61,7 @@ Godot에 두 플레이어의 횟수와 점프가 따로 표시됩니다. 키보�
 - `hello` / `jump`는 Android와 같은 v1 규격입니다. 시뮬레이터에는 `player_id`를 추가합니다.
 - 준비 시 `{"protocol_version":1,"type":"ready","player_id":"sim-01","workout_session_id":"UUID","message":"Ready"}`를 보냅니다.
 - jump의 `timestamp_ms`는 준비 이후 단조 시각입니다. PC와 폰 간 절대 시각 비교에 사용하지 않습니다.
-- Android 앱은 기존 hello/jump를 그대로 사용할 수 있습니다. Android의 별도 ready 전송은 이번 범위에 없습니다.
+- Android 앱도 실제 보정 완료 시 ready를 보냅니다. 준비/일시정지/추적 중단/종료는 workout_state로 동기화합니다.
 - Godot은 현재 접속의 운동 세션별 sequence가 증가할 때만 횟수/애니메이션을 갱신합니다.
   재접속을 넘는 플레이어 복원·영구 중복 제거·공동 게임 세션 관리는 후속 범위입니다.
 - 연결 실패 시 창은 유지되며 C로 다시 연결할 수 있습니다. 자동 연결/자동 재접속은 하지 않습니다.

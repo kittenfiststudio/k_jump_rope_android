@@ -73,11 +73,16 @@ func _on_message(id: int, message: Dictionary) -> void:
 			"name": str(message.get("player_id", "기기 #%d" % id)).left(40)}
 	var player: Dictionary = players[id]
 	var status := "연결 되었습니다"
-	if message.type == "ready":
+	if message.type in ["ready", "workout_state"]:
 		if player.session != message.workout_session_id:
 			player.session = message.workout_session_id
 			player.sequence = 0
-		status = "Ready"
+		if message.has("total_count"):
+			player.sequence = max(player.sequence, int(message.total_count))
+		status = "Ready" if message.type == "ready" else str(message.message).left(80)
+		if message.type == "workout_state" and player.tween != null:
+			player.tween.kill()
+			player.marker.position.y = 28
 	elif message.type == "jump":
 		if player.session != message.workout_session_id:
 			player.session = message.workout_session_id

@@ -70,14 +70,23 @@ func _receive(id: int, peer: WebSocketPeer, text: String) -> void:
 		peer.send_text(JSON.stringify({"type": "error", "message": "JSON object required"}))
 		return
 	var message: Dictionary = parsed
-	if message.get("protocol_version") != 1 or message.get("type") not in ["hello", "ready", "jump"]:
+	if message.get("protocol_version") != 1 or message.get("type") not in ["hello", "ready", "jump", "workout_state"]:
 		peer.send_text(JSON.stringify({"type": "error", "message": "Unsupported message"}))
 		return
 	if not message.get("message") is String:
 		return
-	if message.type == "ready" and not message.get("workout_session_id") is String:
+	if message.type in ["ready", "workout_state"] and not message.get("workout_session_id") is String:
 		peer.send_text(JSON.stringify({"type": "error", "message": "Session required"}))
 		return
+	if message.type == "workout_state" and message.get("state") not in ["preparing", "paused", "finished", "tracking_lost"]:
+		peer.send_text(JSON.stringify({"type": "error", "message": "Unsupported workout state"}))
+		return
+	if message.has("total_count"):
+		var count_value: Variant = message.total_count
+		if not (count_value is float or count_value is int):
+			return
+		if not is_finite(float(count_value)) or count_value < 0 or count_value != floor(count_value):
+			return
 	if message.has("player_id") and not message.player_id is String:
 		return
 	if message.type == "jump":

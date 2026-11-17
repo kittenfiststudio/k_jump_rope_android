@@ -38,9 +38,13 @@ data class WorkoutUiState(
 )
 
 class PoseViewModel(application: Application) : AndroidViewModel(application) {
-    private val godot = GodotConnection()
-    val godotStatus = godot.status
     private val connectionPreferences = application.getSharedPreferences("godot_debug", 0)
+    private val godotPlayerId = connectionPreferences.getString("player_id", null)
+        ?: "android-${UUID.randomUUID().toString().take(8)}".also {
+            connectionPreferences.edit().putString("player_id", it).apply()
+        }
+    private val godot = GodotConnection(godotPlayerId)
+    val godotStatus = godot.status
     val savedGodotAddress: String get() = connectionPreferences.getString("address", "ws://10.0.2.2:8080")!!
     fun connectGodot(address: String) {
         if (!BuildConfig.DEBUG) return
@@ -136,6 +140,7 @@ class PoseViewModel(application: Application) : AndroidViewModel(application) {
         workoutOrigin = SystemClock.elapsedRealtime()
         val utc = utcNow()
         engine = WorkoutEngine(id, utc, config)
+        if (BuildConfig.DEBUG) godot.updateWorkout(id, engine!!.state)
         mutableWorkout.value = WorkoutUiState(workout = engine!!.state, logEnabled = enabled,
             logActive = enabled, logs = mutableWorkout.value.logs)
         if (enabled) logs.start(LogHeader(sessionId = id, startedAtUtc = utc,
@@ -165,6 +170,7 @@ class PoseViewModel(application: Application) : AndroidViewModel(application) {
         val t = SystemClock.elapsedRealtime() - workoutOrigin
         record("control", ControlRecord(t, "finish"))
         val summary = e.finish(t, utcNow())
+        if (BuildConfig.DEBUG) godot.updateWorkout(e.id, e.state)
         record("summary", summary)
         mutableWorkout.update { it.copy(workout = e.state, summary = summary, saving = true, message = null) }
         viewModelScope.launch {
@@ -194,7 +200,12 @@ class PoseViewModel(application: Application) : AndroidViewModel(application) {
             mutableWorkout.update { it.copy(logActive = false, logError = "로그 쓰기 큐가 가득 찼거나 중단됐습니다. 불완전 로그로 남습니다.") }
         }
     }
-    private fun publishWorkout() { engine?.let { e -> mutableWorkout.update { it.copy(workout = e.state) } } }
+    private fun publishWorkout(event: JumpEvent? = null) {
+        engine?.let { e ->
+            if (BuildConfig.DEBUG) godot.updateWorkout(e.id, e.state, event)
+            mutableWorkout.update { it.copy(workout = e.state) }
+        }
+    }
     private fun receive(result: PoseResult) {
         lastResultAt = SystemClock.elapsedRealtime()
         outputs++
@@ -210,6 +221,7 @@ class PoseViewModel(application: Application) : AndroidViewModel(application) {
         if (frame.timestampMs < 0) return
         record("frame", frame)
         val before = e.state.detector.state
+        var jumpEvent: JumpEvent? = null
         e.frame(frame)?.let { detected ->
             if (detected.state != before) record("transition", mapOf("timestampMs" to frame.timestampMs,
                 "from" to before.name, "to" to detected.state.name))
@@ -219,10 +231,10 @@ class PoseViewModel(application: Application) : AndroidViewModel(application) {
             }
             detected.event?.let {
                 record("event", it)
-                if (BuildConfig.DEBUG) godot.sendJump(it)
+                jumpEvent = it
             }
         }
-        publishWorkout()
+        publishWorkout(jumpEvent)
     }
     fun refreshLogs() {
         viewModelScope.launch {

@@ -2,6 +2,7 @@
 .gradle/
 build/
 logs/
+iOS/
 .kotlin/
 
 # Local configuration file (sdk path, etc)

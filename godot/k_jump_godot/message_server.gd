@@ -3,6 +3,7 @@ extends Node
 signal status_changed(text: String)
 signal message_received(peer_id: int, message: Dictionary)
 signal clients_changed(count: int)
+signal client_disconnected(peer_id: int)
 
 @export var port: int = 8080
 var tcp := TCPServer.new()
@@ -13,6 +14,13 @@ const MAX_CLIENTS := 16
 const MAX_PACKETS_PER_FRAME := 32
 
 func _ready() -> void:
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--port="):
+			port = argument.trim_prefix("--port=").to_int()
+	if port < 1 or port > 65535:
+		status_changed.emit("서버 포트는 1~65535여야 합니다.")
+		set_process(false)
+		return
 	var error := tcp.listen(port, "0.0.0.0")
 	if error != OK:
 		status_changed.emit("서버 시작 실패: %s · 포트 %d 확인" % [error_string(error), port])
@@ -51,6 +59,7 @@ func _process(_delta: float) -> void:
 		elif state == WebSocketPeer.STATE_CLOSED or (
 			state == WebSocketPeer.STATE_CONNECTING and Time.get_ticks_msec() > deadlines[id]
 		):
+			client_disconnected.emit(id)
 			peers.erase(id)
 			deadlines.erase(id)
 	clients_changed.emit(opened)
@@ -61,10 +70,15 @@ func _receive(id: int, peer: WebSocketPeer, text: String) -> void:
 		peer.send_text(JSON.stringify({"type": "error", "message": "JSON object required"}))
 		return
 	var message: Dictionary = parsed
-	if message.get("protocol_version") != 1 or message.get("type") not in ["hello", "jump"]:
+	if message.get("protocol_version") != 1 or message.get("type") not in ["hello", "ready", "jump"]:
 		peer.send_text(JSON.stringify({"type": "error", "message": "Unsupported message"}))
 		return
 	if not message.get("message") is String:
+		return
+	if message.type == "ready" and not message.get("workout_session_id") is String:
+		peer.send_text(JSON.stringify({"type": "error", "message": "Session required"}))
+		return
+	if message.has("player_id") and not message.player_id is String:
 		return
 	if message.type == "jump":
 		if not message.get("event_id") is String or not message.get("workout_session_id") is String:

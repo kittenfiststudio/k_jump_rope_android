@@ -1,7 +1,8 @@
 # Android ↔ Godot 메시지 확인
 
 첫 목표는 **점프 없이 Android 앱에서 보낸 인사가 PC 화면에 나타나는 것**입니다.
-Android 테스트 버튼과 Python 시뮬레이터, 게임 동작은 이번 범위에 추가하지 않습니다.
+Android 테스트 버튼은 추가하지 않습니다. Python 시뮬레이터와 Ready/Counting Up 표시는
+후속으로 구현했으며 [실행 방법](../../python_sim/README.md)을 참고합니다.
 
 ## 실행
 
@@ -33,7 +34,8 @@ USB 연결로 네트워크를 우회하려면 `adb reverse tcp:8080 tcp:8080` �
 - 연결 설정은 Android에 저장됩니다. 재실행 시 자동 접속하지 않고 사용자가 연결합니다.
 - 네트워크 오류는 측정·로컬 저장을 중단시키지 않습니다.
 - 재연결은 수동입니다. 끊긴 동안의 점프를 저장하거나 재전송하지 않습니다.
-- 여기서는 수신 로그만 표시합니다. 이벤트 중복 집계 방지·누적 횟수 복구·게임 공격은 후속 단계입니다.
+- 여기서는 수신 로그만 표시합니다. 현재 접속/운동 세션 내 sequence 중복은 표시·애니메이션에 반영하지 않습니다.
+  재접속을 넘는 중복 처리·누적 횟수 복구·게임 공격은 후속 단계입니다.
 - LAN 연결은 debug 빌드 전용입니다. debug Manifest에서만 INTERNET과 평문 통신을 허용합니다.
   release는 기존 네트워크 권한 제거 정책을 유지합니다.
 - 영상·포즈 좌표·학생 개인정보는 전송하지 않습니다. 수신 로그는 디스크에 저장하지 않습니다.
@@ -64,3 +66,8 @@ Godot이 유효한 메시지를 화면에 전달한 뒤 ACK를 보냅니다. ACK
 운동 정확도나 게임 동작 성공을 뜻하지 않습니다.
 
 공식 API 참고: https://docs.godotengine.org/en/stable/tutorials/networking/websocket.html
+
+## Python 준비 이벤트
+
+`ready` 메시지의 운동 세션 ID를 받아 Ready를 표시합니다. 이후 jump에서 Counting Up과
+횟수·사각형 점프를 표시합니다. 기존 Android는 ready 없이 hello/jump를 사용할 수 있습니다.

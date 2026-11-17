@@ -124,3 +124,9 @@ callback 도착 시각을 동작 시각으로 쓰지 않습니다. 같은 밀리
 현재 판정은 골반 기반 v2이며 상승량·속도 임계값을 v1보다 80% 낮췄습니다. 발목 상승량은 카운트 조건에서 제외하고 전신 인식은 유지합니다.
 
 판정 초기값과 시간·평균 의미는 `docs/DETECTION_SPEC.md`, 로그 계약은 `docs/DOMAIN_MODEL.md`를 참고하세요.
+
+## PC 가상 측정기
+
+폰 없이 Space 입력으로 Godot에 점프를 보낼 수 있습니다.
+[Python 시뮬레이터 설치·실행](python_sim/README.md)을 참고하세요.
+연결 → Enter(Ready) → Space(Counting Up) 순서로 확인하며 두 창으로 다중 기기도 시뮬레이션합니다.

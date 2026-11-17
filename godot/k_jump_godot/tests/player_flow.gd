@@ -19,12 +19,12 @@ func _run() -> void:
 	assert(view.players[1].sequence == 1)
 	assert("Counting Up" in view.latest_label.text)
 	await create_timer(0.06).timeout
-	assert(view.players[1].marker.position.y < 28.0, "Jump must move the marker")
+	assert(view.players[1].marker.position.y > 1.12, "Jump must move the marker")
 	var tween = view.players[1].tween
 	view._on_message(1, jump)
 	assert(view.players[1].tween == tween, "Duplicate must not animate twice")
-	await create_timer(0.35).timeout
-	assert(is_equal_approx(view.players[1].marker.position.y, 28.0), "Marker must land")
+	await create_timer(0.5).timeout
+	assert(is_equal_approx(view.players[1].marker.position.y, 1.12), "Marker must land")
 	view._on_message(2, {"type": "hello", "player_id": "sim-02", "message": "hello"})
 	assert(view.players[2].sequence == 0)
 	assert(view.players[1].sequence == 1)

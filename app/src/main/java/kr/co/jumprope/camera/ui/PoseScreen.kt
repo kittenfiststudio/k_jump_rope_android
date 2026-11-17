@@ -65,7 +65,7 @@ fun PoseScreen(model: PoseViewModel = viewModel()) {
     var sizeRevision by remember { mutableIntStateOf(0) }
     var retry by remember { mutableIntStateOf(0) }
     var resumed by remember { mutableStateOf(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
-    var debug by remember { mutableStateOf(false) }
+    var debug by remember { mutableStateOf(model.debugPanelVisible) }
     var overlay by remember { mutableStateOf(true) }
     var library by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -110,7 +110,8 @@ fun PoseScreen(model: PoseViewModel = viewModel()) {
     }
     Surface(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().safeDrawingPadding().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (!compact) Text("줄넘기 포즈 실험", style = MaterialTheme.typography.titleLarge)
+            if (!compact) Text(if (BuildConfig.DEBUG) "줄넘기 · Godot 연동" else "줄넘기 포즈 실험", style = MaterialTheme.typography.titleLarge)
+            if (BuildConfig.DEBUG) Text("Godot · $godotStatus", style = MaterialTheme.typography.bodySmall, maxLines = 2)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 Metric("점프", "${workout.jumpCount}회")
                 Metric("유효 운동", duration(workout.validTrackingDurationMs))
@@ -214,7 +215,7 @@ fun PoseScreen(model: PoseViewModel = viewModel()) {
                 workoutUi.logError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(overlay, onCheckedChange = { overlay = it }); Text("관절 표시")
-                    Spacer(Modifier.width(8.dp)); Checkbox(debug, onCheckedChange = { debug = it }); Text("개발 지표")
+                    Spacer(Modifier.width(8.dp)); Checkbox(debug, onCheckedChange = { debug = it; model.setDebugPanelVisible(it) }); Text("개발 지표")
                 }
                 if (debug && BuildConfig.DEBUG) {
                     Text("PC Godot 연결")

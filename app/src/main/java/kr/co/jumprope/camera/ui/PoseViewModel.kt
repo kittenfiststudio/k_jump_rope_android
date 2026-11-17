@@ -45,6 +45,10 @@ class PoseViewModel(application: Application) : AndroidViewModel(application) {
         }
     private val godot = GodotConnection(godotPlayerId)
     val godotStatus = godot.status
+    val debugPanelVisible: Boolean get() = connectionPreferences.getBoolean("show_debug_panel", BuildConfig.DEBUG)
+    fun setDebugPanelVisible(visible: Boolean) {
+        connectionPreferences.edit().putBoolean("show_debug_panel", visible).apply()
+    }
     val savedGodotAddress: String get() = connectionPreferences.getString("address", "ws://10.0.2.2:8080")!!
     fun connectGodot(address: String) {
         if (!BuildConfig.DEBUG) return

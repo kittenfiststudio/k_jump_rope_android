@@ -1,4 +1,4 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" tools:node="replace" />
-    <application android:usesCleartextTraffic="true" />
+    <application android:usesCleartextTraffic="true" android:label="줄넘기 Godot 연동" tools:replace="android:label" />
 </manifest>

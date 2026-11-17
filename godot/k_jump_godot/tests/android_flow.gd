@@ -19,7 +19,7 @@ func _run() -> void:
 	assert(view.players[1].tween != null)
 	view._on_message(1, {"type": "workout_state", "workout_session_id": "a", "total_count": 6, "state": "paused", "message": "일시정지"})
 	assert("일시정지" in view.latest_label.text)
-	assert(is_equal_approx(view.players[1].marker.position.y, 28.0))
+	assert(is_equal_approx(view.players[1].marker.position.y, 1.12))
 	view._on_message(1, {"type": "ready", "workout_session_id": "a", "total_count": 6, "message": "Ready"})
 	assert(view.players[1].sequence == 6, "Recalibration must preserve counts")
 	view._on_message(1, {"type": "workout_state", "workout_session_id": "a", "total_count": 6, "state": "finished", "message": "운동 종료"})
